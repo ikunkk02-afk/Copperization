@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"package": "com.shouyun.copperization.client.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"ArmedEntityRenderStateMixin",
+		"LivingEntityRendererStateMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

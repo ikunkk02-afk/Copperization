@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "copperization:block/weathered_copperized_polished_blackstone"
+  }
+}

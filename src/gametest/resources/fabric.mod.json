@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "copperization-gametest",
+  "version": "0.1.0",
+  "name": "Copperization Game Tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "com.shouyun.copperization.gametest.CopperizationGameTests"
+    ],
+    "fabric-client-gametest": [
+      "com.shouyun.copperization.gametest.CopperizationClientGameTest"
+    ]
+  },
+  "depends": {
+    "copperization": "*",
+    "fabric-api": "*",
+    "minecraft": "~26.2"
+  }
+}

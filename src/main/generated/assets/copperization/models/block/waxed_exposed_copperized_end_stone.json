@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "copperization:block/exposed_copperized_end_stone"
+  }
+}

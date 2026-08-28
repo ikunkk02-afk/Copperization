@@ -1,0 +1,42 @@
+{
+	"schemaVersion": 1,
+	"id": "copperization",
+	"version": "${version}",
+	"name": "Copperization",
+	"description": "Copperize living entities into collectible, weathering statues and transform building blocks with a copperization wand.",
+	"authors": [
+		"Shouyun"
+	],
+	"contact": {
+		"homepage": "https://github.com/ikunkk02-afk/Copperization",
+		"sources": "https://github.com/ikunkk02-afk/Copperization",
+		"issues": "https://github.com/ikunkk02-afk/Copperization/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/copperization/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.shouyun.copperization.Copperization"
+		],
+		"client": [
+			"com.shouyun.copperization.client.CopperizationClient"
+		],
+		"fabric-datagen": [
+			"com.shouyun.copperization.client.CopperizationDataGenerator"
+		]
+	},
+	"mixins": [
+		"copperization.mixins.json",
+		{
+			"config": "copperization.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

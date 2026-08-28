@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"package": "com.shouyun.copperization.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"LivingEntityStatueMixin",
+		"ServerLevelStatueTickMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
