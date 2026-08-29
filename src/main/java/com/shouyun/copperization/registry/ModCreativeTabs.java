@@ -38,8 +38,9 @@ public final class ModCreativeTabs {
 	}
 
 	public static List<ItemStack> creativeContents() {
-		List<ItemStack> contents = new ArrayList<>(93);
+		List<ItemStack> contents = new ArrayList<>(94);
 		contents.add(new ItemStack(ModItems.COPPERIZATION_WAND));
+		contents.add(new ItemStack(ModItems.RESTORATION_WAND));
 		contents.add(CopperStatueManager.createCreativeSample(EntityTypes.ZOMBIE));
 		contents.add(CopperStatueManager.createCreativeSample(EntityTypes.SKELETON));
 		contents.add(CopperStatueManager.createCreativeSample(EntityTypes.CREEPER));

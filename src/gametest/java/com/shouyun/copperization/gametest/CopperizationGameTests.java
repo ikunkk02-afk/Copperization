@@ -1,6 +1,7 @@
 package com.shouyun.copperization.gametest;
 
 import com.shouyun.copperization.block.CopperizableBlockRegistry;
+import com.shouyun.copperization.block.CopperizedBlockStorage;
 import com.shouyun.copperization.copper.CopperOxidationManager;
 import com.shouyun.copperization.copper.CopperStatueManager;
 import com.shouyun.copperization.copper.CopperizationManager;
@@ -21,6 +22,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.level.GameType;
@@ -44,6 +46,10 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 		if (CopperizableBlockRegistry.copperize(Blocks.CHEST.defaultBlockState()).isPresent()) throw new AssertionError("Chest must not be copperizable");
 		if (CopperizableBlockRegistry.copperize(Blocks.FURNACE.defaultBlockState()).isPresent()) throw new AssertionError("Furnace must not be copperizable");
 		if (CopperizableBlockRegistry.copperize(Blocks.STONE.defaultBlockState()).isEmpty()) throw new AssertionError("Stone must be copperizable");
+		if (CopperizableBlockRegistry.copperize(Blocks.OAK_STAIRS.defaultBlockState()).isEmpty()
+			|| CopperizableBlockRegistry.copperize(Blocks.POPPY.defaultBlockState()).isEmpty()) {
+			throw new AssertionError("Model-backed building blocks and plants must use the generic mapping");
+		}
 		context.succeed();
 	}
 
@@ -373,13 +379,14 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 			throw new AssertionError("Copperization creative tab or icon was not registered");
 		}
 		List<ItemStack> contents = ModCreativeTabs.creativeContents();
-		if (contents.size() != 93 || !contents.getFirst().is(ModItems.COPPERIZATION_WAND)) {
+		if (contents.size() != 94 || !contents.getFirst().is(ModItems.COPPERIZATION_WAND)
+			|| !contents.get(1).is(ModItems.RESTORATION_WAND)) {
 			throw new AssertionError("Unexpected creative tab size or first item: " + contents.size());
 		}
 
 		var sampleTypes = List.of(EntityTypes.ZOMBIE, EntityTypes.SKELETON, EntityTypes.CREEPER, EntityTypes.VILLAGER);
 		for (int index = 0; index < sampleTypes.size(); index++) {
-			ItemStack sample = contents.get(index + 1);
+			ItemStack sample = contents.get(index + 2);
 			var data = sample.get(ModDataComponents.COPPER_STATUE_DATA);
 			if (!sample.is(ModItems.COPPER_STATUE) || data == null
 				|| !data.entityType().equals(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(sampleTypes.get(index)))) {
@@ -387,7 +394,7 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 			}
 		}
 		var samplePlayer = context.makeMockServerPlayer(GameType.SURVIVAL);
-		var placedSample = placeStatueStack(context, samplePlayer, EntityTypes.ZOMBIE, contents.get(1).copy(), new BlockPos(1, 1, 3));
+		var placedSample = placeStatueStack(context, samplePlayer, EntityTypes.ZOMBIE, contents.get(2).copy(), new BlockPos(1, 1, 3));
 		if (!CopperizationManager.isStatue(placedSample)) {
 			throw new AssertionError("Creative statue sample could not be placed as a usable statue");
 		}
@@ -404,7 +411,7 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 					case 2 -> byState.weathered();
 					default -> byState.oxidized();
 				};
-				ItemStack actual = contents.get(5 + stage * ModBlocks.families().size() + familyIndex);
+				ItemStack actual = contents.get(6 + stage * ModBlocks.families().size() + familyIndex);
 				if (!actual.is(expected)) throw new AssertionError("Creative block ordering mismatch at stage " + stage + ", family " + family.name());
 			}
 		}
@@ -493,6 +500,65 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 		context.setBlock(chest, Blocks.CHEST);
 		ModItems.COPPERIZATION_WAND.useOn(useContext(context, player, chest));
 		if (!context.getBlockState(chest).is(Blocks.CHEST)) throw new AssertionError("Wand modified an unsupported block");
+		context.succeed();
+	}
+
+	@GameTest
+	public void restorationWandRestoresLegacyAndPositionalBlocks(GameTestHelper context) {
+		var player = context.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		ItemStack copperizationWand = new ItemStack(ModItems.COPPERIZATION_WAND);
+		ItemStack restorationWand = new ItemStack(ModItems.RESTORATION_WAND);
+		BlockPos stone = new BlockPos(1, 1, 1);
+		context.setBlock(stone, Blocks.STONE);
+		player.setItemInHand(InteractionHand.MAIN_HAND, copperizationWand);
+		ModItems.COPPERIZATION_WAND.useOn(useContext(context, player, stone));
+		player.setItemInHand(InteractionHand.MAIN_HAND, restorationWand);
+		ModItems.RESTORATION_WAND.useOn(useContext(context, player, stone));
+		if (!context.getBlockState(stone).is(Blocks.STONE) || restorationWand.getDamageValue() != 1) {
+			throw new AssertionError("Legacy copperized block did not restore with the wand");
+		}
+
+		BlockPos poppy = new BlockPos(2, 1, 1);
+		context.setBlock(poppy, Blocks.POPPY);
+		ItemStack genericWand = new ItemStack(ModItems.COPPERIZATION_WAND);
+		player.setItemInHand(InteractionHand.MAIN_HAND, genericWand);
+		ModItems.COPPERIZATION_WAND.useOn(useContext(context, player, poppy));
+		if (!context.getBlockState(poppy).is(Blocks.POPPY) || !CopperizedBlockStorage.isCopperized(context.getLevel(), context.absolutePos(poppy))) {
+			throw new AssertionError("Positional copperization replaced a plant instead of attaching state");
+		}
+		ItemStack genericRestore = new ItemStack(ModItems.RESTORATION_WAND);
+		player.setItemInHand(InteractionHand.MAIN_HAND, genericRestore);
+		ModItems.RESTORATION_WAND.useOn(useContext(context, player, poppy));
+		if (!context.getBlockState(poppy).is(Blocks.POPPY) || CopperizedBlockStorage.isCopperized(context.getLevel(), context.absolutePos(poppy))) {
+			throw new AssertionError("Positional copperization did not restore the original state");
+		}
+		context.succeed();
+	}
+
+	@GameTest
+	public void restorationWandRestoresEntityInPlaceAndPreservesOriginalFlags(GameTestHelper context) {
+		var player = context.makeMockServerPlayerInLevel();
+		player.setGameMode(GameType.SURVIVAL);
+		var zombie = context.spawn(EntityTypes.ZOMBIE, 1, 2, 1);
+		zombie.setBaby(true);
+		zombie.setCustomName(Component.literal("Test"));
+		zombie.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.DIAMOND_SWORD));
+		zombie.setNoAi(true);
+		zombie.setInvulnerable(true);
+		zombie.setNoGravity(true);
+		CopperizationManager.setProgress(zombie, 1.0F);
+		ItemStack restorationWand = new ItemStack(ModItems.RESTORATION_WAND);
+		player.setItemInHand(InteractionHand.MAIN_HAND, restorationWand);
+		InteractionResult result = UseEntityCallback.EVENT.invoker().interact(player, context.getLevel(), InteractionHand.MAIN_HAND, zombie, new EntityHitResult(zombie));
+		if (!result.consumesAction() || CopperizationManager.isStatue(zombie) || !zombie.isBaby()
+			|| !zombie.getMainHandItem().is(Items.DIAMOND_SWORD) || zombie.getCustomName() == null
+			|| !zombie.getCustomName().getString().equals("Test") || !zombie.isNoAi() || !zombie.isInvulnerable() || !zombie.isNoGravity()) {
+			throw new AssertionError("Restoration did not preserve the original entity instance, data, and flags");
+		}
+		if (restorationWand.getDamageValue() != 1 || !player.getCooldowns().isOnCooldown(restorationWand)) {
+			throw new AssertionError("Successful entity restoration did not use durability and cooldown");
+		}
 		context.succeed();
 	}
 

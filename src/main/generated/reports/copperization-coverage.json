@@ -1,0 +1,78 @@
+{
+  "categories": {
+    "BlockEntities": {
+      "supported": 0,
+      "total": 186,
+      "unsupported": 186
+    },
+    "Crops": {
+      "supported": 9,
+      "total": 9,
+      "unsupported": 0
+    },
+    "Doors": {
+      "supported": 21,
+      "total": 21,
+      "unsupported": 0
+    },
+    "Fence Gates": {
+      "supported": 12,
+      "total": 12,
+      "unsupported": 0
+    },
+    "Fences": {
+      "supported": 13,
+      "total": 13,
+      "unsupported": 0
+    },
+    "Full Blocks": {
+      "supported": 577,
+      "total": 577,
+      "unsupported": 0
+    },
+    "Leaves": {
+      "supported": 11,
+      "total": 11,
+      "unsupported": 0
+    },
+    "Plants": {
+      "supported": 117,
+      "total": 117,
+      "unsupported": 0
+    },
+    "Redstone": {
+      "supported": 37,
+      "total": 37,
+      "unsupported": 0
+    },
+    "Slabs": {
+      "supported": 68,
+      "total": 68,
+      "unsupported": 0
+    },
+    "Stairs": {
+      "supported": 64,
+      "total": 64,
+      "unsupported": 0
+    },
+    "Technical Blocks": {
+      "supported": 0,
+      "total": 14,
+      "unsupported": 14
+    },
+    "Trapdoors": {
+      "supported": 21,
+      "total": 21,
+      "unsupported": 0
+    },
+    "Walls": {
+      "supported": 46,
+      "total": 46,
+      "unsupported": 0
+    }
+  },
+  "coverage_percent": 83.28,
+  "supported": 996,
+  "unsupported": 200,
+  "vanilla_blocks_total": 1196
+}

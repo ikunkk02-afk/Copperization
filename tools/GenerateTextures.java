@@ -32,7 +32,9 @@ public final class GenerateTextures {
 		Path root = options.root();
 		Path textureRoot = root.resolve("src/main/resources/assets/copperization/textures");
 		Path blocks = textureRoot.resolve("block");
+		Path items = textureRoot.resolve("item");
 		Files.createDirectories(blocks);
+		Files.createDirectories(items);
 
 		try (ZipFile minecraft = new ZipFile(options.minecraftJar().toFile())) {
 			if (!options.verifyOnly()) {
@@ -42,6 +44,7 @@ public final class GenerateTextures {
 						writeBlock(blocks.resolve(profile.prefix() + family + ".png"), source, profile);
 					}
 				}
+				writeRestorationWand(items.resolve("restoration_wand.png"));
 			}
 			verifyGeneratedTextures(minecraft, blocks);
 		}
@@ -267,6 +270,20 @@ public final class GenerateTextures {
 		for (int[] p : crystal) set(image, p[0], p[1], 0xFF9B6BCE);
 		set(image, 12, 2, 0xFFE7C9FF); set(image, 13, 3, 0xFFC79BEA);
 		set(image, 2, 13, 0xFF9B5530); set(image, 1, 14, 0xFFD47C45); set(image, 3, 14, 0xFF5F2E20);
+		ImageIO.write(image, "png", path.toFile());
+	}
+
+	/** A deliberately distinct patina-and-amethyst counterpart to the warm copperization wand. */
+	private static void writeRestorationWand(Path path) throws IOException {
+		BufferedImage image = transparent(16);
+		for (int i = 2; i < 13; i++) {
+			set(image, i, 15 - i, 0xFF2E756E);
+			if (i % 2 == 0) set(image, i, 14 - i, 0xFF73B9A2);
+		}
+		int[][] crystal = {{11,2},{12,1},{13,2},{14,3},{13,4},{12,5},{11,4},{10,3}};
+		for (int[] p : crystal) set(image, p[0], p[1], 0xFF9B6BCE);
+		set(image, 12, 2, 0xFFF0D9FF); set(image, 13, 3, 0xFFCDA5EE);
+		set(image, 2, 13, 0xFF356E66); set(image, 1, 14, 0xFF8ED6C3); set(image, 3, 14, 0xFF17443F);
 		ImageIO.write(image, "png", path.toFile());
 	}
 

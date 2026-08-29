@@ -4,11 +4,14 @@ import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import com.shouyun.copperization.copper.CopperizationManager;
 import com.shouyun.copperization.copper.CopperStatueManager;
+import com.shouyun.copperization.block.CopperizedBlockStorage;
+import com.shouyun.copperization.block.CopperizedBlockInteractions;
 import com.shouyun.copperization.registry.ModAttachments;
 import com.shouyun.copperization.registry.ModBlocks;
 import com.shouyun.copperization.registry.ModCreativeTabs;
 import com.shouyun.copperization.registry.ModItems;
 import com.shouyun.copperization.registry.ModDataComponents;
+import com.shouyun.copperization.network.ModNetworking;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,12 +26,15 @@ public class Copperization implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		ModAttachments.register();
+		ModNetworking.register();
 		ModDataComponents.register();
 		ModBlocks.register();
 		ModItems.register();
 		ModCreativeTabs.register();
 		CopperizationManager.registerEvents();
 		CopperStatueManager.registerEvents();
+		CopperizedBlockStorage.registerEvents();
+		CopperizedBlockInteractions.registerEvents();
 		LOGGER.info("Copperization 0.1.0 initialized");
 	}
 

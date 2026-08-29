@@ -14,9 +14,10 @@ public record CopperizationState(
 	boolean copperStatue,
 	boolean waxed,
 	Optional<FrozenPoseSnapshot> frozenPose,
+	Optional<PreCopperizationEntityFlags> preCopperizationFlags,
 	long nextWeatheringTick
 ) {
-	public static final CopperizationState EMPTY = new CopperizationState(0.0F, false, 0, 0.0F, false, false, Optional.empty(), 0L);
+	public static final CopperizationState EMPTY = new CopperizationState(0.0F, false, 0, 0.0F, false, false, Optional.empty(), Optional.empty(), 0L);
 
 	public static final Codec<CopperizationState> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 		Codec.FLOAT.optionalFieldOf("copperization_progress", 0.0F).forGetter(CopperizationState::copperizationProgress),
@@ -26,8 +27,18 @@ public record CopperizationState(
 		Codec.BOOL.optionalFieldOf("copper_statue", false).forGetter(CopperizationState::copperStatue),
 		Codec.BOOL.optionalFieldOf("waxed", false).forGetter(CopperizationState::waxed),
 		FrozenPoseSnapshot.CODEC.optionalFieldOf("frozen_pose").forGetter(CopperizationState::frozenPose),
+		PreCopperizationEntityFlags.CODEC.optionalFieldOf("pre_copperization_flags").forGetter(CopperizationState::preCopperizationFlags),
 		Codec.LONG.optionalFieldOf("next_weathering_tick", 0L).forGetter(CopperizationState::nextWeatheringTick)
 	).apply(instance, CopperizationState::new));
+
+	/** Compatibility constructor for pre-restoration saves and tests. */
+	public CopperizationState(
+		float copperizationProgress, boolean copperizationActive, int copperizationLevel, float oxidationProgress,
+		boolean copperStatue, boolean waxed, Optional<FrozenPoseSnapshot> frozenPose, long nextWeatheringTick
+	) {
+		this(copperizationProgress, copperizationActive, copperizationLevel, oxidationProgress, copperStatue, waxed,
+			frozenPose, Optional.empty(), nextWeatheringTick);
+	}
 
 	public CopperizationState {
 		copperizationProgress = Mth.clamp(copperizationProgress, 0.0F, 1.0F);
@@ -35,34 +46,39 @@ public record CopperizationState(
 		if (copperStatue || copperizationProgress >= 1.0F) copperizationActive = false;
 		oxidationProgress = Mth.clamp(oxidationProgress, 0.0F, 1.0F);
 		frozenPose = frozenPose == null ? Optional.empty() : frozenPose;
+		preCopperizationFlags = preCopperizationFlags == null ? Optional.empty() : preCopperizationFlags;
 	}
 
 	public CopperizationState withProgress(float progress) {
-		return new CopperizationState(progress, copperizationActive, copperizationLevel, oxidationProgress, copperStatue, waxed, frozenPose, nextWeatheringTick);
+		return new CopperizationState(progress, copperizationActive, copperizationLevel, oxidationProgress, copperStatue, waxed, frozenPose, preCopperizationFlags, nextWeatheringTick);
 	}
 
 	public CopperizationState start(int level) {
-		return new CopperizationState(copperizationProgress, true, Math.max(copperizationLevel, Mth.clamp(level, 1, 3)), oxidationProgress, false, waxed, frozenPose, nextWeatheringTick);
+		return new CopperizationState(copperizationProgress, true, Math.max(copperizationLevel, Mth.clamp(level, 1, 3)), oxidationProgress, false, waxed, frozenPose, preCopperizationFlags, nextWeatheringTick);
 	}
 
 	public CopperizationState withLevel(int level) {
-		return new CopperizationState(copperizationProgress, copperizationActive, Math.max(copperizationLevel, Mth.clamp(level, 1, 3)), oxidationProgress, copperStatue, waxed, frozenPose, nextWeatheringTick);
+		return new CopperizationState(copperizationProgress, copperizationActive, Math.max(copperizationLevel, Mth.clamp(level, 1, 3)), oxidationProgress, copperStatue, waxed, frozenPose, preCopperizationFlags, nextWeatheringTick);
 	}
 
 	public CopperizationState asStatue(FrozenPoseSnapshot snapshot, long weatheringTick) {
-		return new CopperizationState(1.0F, false, copperizationLevel, oxidationProgress, true, waxed, Optional.of(snapshot), weatheringTick);
+		return asStatue(snapshot, preCopperizationFlags.orElse(PreCopperizationEntityFlags.DEFAULT), weatheringTick);
+	}
+
+	public CopperizationState asStatue(FrozenPoseSnapshot snapshot, PreCopperizationEntityFlags flags, long weatheringTick) {
+		return new CopperizationState(1.0F, false, copperizationLevel, oxidationProgress, true, waxed, Optional.of(snapshot), Optional.of(flags), weatheringTick);
 	}
 
 	public CopperizationState withOxidation(float progress, long weatheringTick) {
-		return new CopperizationState(copperizationProgress, copperizationActive, copperizationLevel, progress, copperStatue, waxed, frozenPose, weatheringTick);
+		return new CopperizationState(copperizationProgress, copperizationActive, copperizationLevel, progress, copperStatue, waxed, frozenPose, preCopperizationFlags, weatheringTick);
 	}
 
 	public CopperizationState withWaxed(boolean value) {
-		return new CopperizationState(copperizationProgress, copperizationActive, copperizationLevel, oxidationProgress, copperStatue, value, frozenPose, nextWeatheringTick);
+		return new CopperizationState(copperizationProgress, copperizationActive, copperizationLevel, oxidationProgress, copperStatue, value, frozenPose, preCopperizationFlags, nextWeatheringTick);
 	}
 
 	public CopperizationState withFrozenPose(FrozenPoseSnapshot snapshot) {
-		return new CopperizationState(copperizationProgress, copperizationActive, copperizationLevel, oxidationProgress, copperStatue, waxed, Optional.of(snapshot), nextWeatheringTick);
+		return new CopperizationState(copperizationProgress, copperizationActive, copperizationLevel, oxidationProgress, copperStatue, waxed, Optional.of(snapshot), preCopperizationFlags, nextWeatheringTick);
 	}
 
 	public WeatheringCopper.WeatherState weatherState() {

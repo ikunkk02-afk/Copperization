@@ -1,6 +1,8 @@
 package com.shouyun.copperization.gametest;
 
 import com.shouyun.copperization.copper.CopperizationManager;
+import com.shouyun.copperization.block.CopperizedBlockStorage;
+import com.shouyun.copperization.client.render.CopperizedClientChunkState;
 import com.shouyun.copperization.registry.ModBlocks;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +40,7 @@ public final class CopperizationClientGameTest implements FabricClientGameTest {
 			captureEntityStages(context, singleplayer, connection, EntityTypes.CREEPER, "creeper");
 			captureWaxParity(context, singleplayer, connection);
 			captureBlockPanels(context, singleplayer, connection);
+			captureGenericModelPanel(context, singleplayer, connection);
 		}
 	}
 
@@ -149,5 +152,41 @@ public final class CopperizationClientGameTest implements FabricClientGameTest {
 			context.waitTick();
 			connection.waitForClientboundPackets();
 		}
+	}
+
+	/** Covers cutout and non-cube vanilla models through the positional, resource-pack-aware path. */
+	private static void captureGenericModelPanel(
+		ClientGameTestContext context,
+		TestSingleplayerContext singleplayer,
+		TestServerConnection connection
+	) {
+		List<BlockPos> positions = singleplayer.getServer().computeOnServer(server -> {
+			ServerLevel level = connection.getServerLevel();
+			BlockPos playerPos = connection.getServerPlayer().blockPosition();
+			List<net.minecraft.world.level.block.state.BlockState> states = List.of(
+				Blocks.OAK_STAIRS.defaultBlockState(), Blocks.OAK_SLAB.defaultBlockState(), Blocks.OAK_FENCE.defaultBlockState(),
+				Blocks.OAK_FENCE_GATE.defaultBlockState(), Blocks.OAK_TRAPDOOR.defaultBlockState(), Blocks.OAK_LEAVES.defaultBlockState(),
+				Blocks.POPPY.defaultBlockState(), Blocks.WHEAT.defaultBlockState(), Blocks.SUGAR_CANE.defaultBlockState(), Blocks.VINE.defaultBlockState()
+			);
+			List<BlockPos> placed = new ArrayList<>();
+			for (int index = 0; index < states.size(); index++) {
+				BlockPos pos = new BlockPos(playerPos.getX() + 4 - (index % 5) * 2, playerPos.getY() + (index / 5) * 2, playerPos.getZ() + 7);
+				level.setBlockAndUpdate(pos.below(), Blocks.STONE.defaultBlockState());
+				level.setBlockAndUpdate(pos, states.get(index));
+				if (!CopperizedBlockStorage.copperize(level, pos)) throw new AssertionError("Could not copperize generic model " + states.get(index));
+				placed.add(pos);
+			}
+			return placed;
+		});
+		context.waitFor(client -> positions.stream().anyMatch(pos -> CopperizedClientChunkState.get(pos) != null));
+		connection.waitForClientboundPackets();
+		connection.waitForChunksRender(false);
+		context.waitTicks(12);
+		context.takeScreenshot("copperization-generic-models");
+		singleplayer.getServer().runOnServer(server -> {
+			ServerLevel level = connection.getServerLevel();
+			positions.forEach(pos -> level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState()));
+		});
+		context.waitTick();
 	}
 }

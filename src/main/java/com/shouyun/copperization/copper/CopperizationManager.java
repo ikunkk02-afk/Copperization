@@ -2,12 +2,14 @@ package com.shouyun.copperization.copper;
 
 import com.shouyun.copperization.Copperization;
 import com.shouyun.copperization.CopperizationConstants;
+import com.shouyun.copperization.item.RestorationWandItem;
 import com.shouyun.copperization.registry.ModAttachments;
 import com.shouyun.copperization.registry.ModEnchantments;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -38,6 +40,8 @@ public final class CopperizationManager {
 
 	public static void registerEvents() {
 		ServerLivingEntityEvents.AFTER_DAMAGE.register(CopperizationManager::afterDamage);
+		UseEntityCallback.EVENT.register((player, level, hand, target, hit) ->
+			RestorationWandItem.tryRestoreEntity(player, level, hand, target));
 		ServerEntityEvents.ENTITY_LOAD.register(CopperizationManager::onEntityLoad);
 		ServerEntityEvents.ENTITY_UNLOAD.register(CopperizationManager::onEntityUnload);
 	}
@@ -126,7 +130,8 @@ public final class CopperizationManager {
 
 	private static void completeCopperization(ServerLevel level, LivingEntity entity, CopperizationState state) {
 		CopperizationState statue = state.withProgress(1.0F).asStatue(
-			FrozenPoseSnapshot.capture(entity), level.getGameTime() + CopperizationConstants.OXIDATION_SAMPLE_INTERVAL);
+			FrozenPoseSnapshot.capture(entity), PreCopperizationEntityFlags.capture(entity),
+			level.getGameTime() + CopperizationConstants.OXIDATION_SAMPLE_INTERVAL);
 		LIVE_PROGRESS.remove(entity);
 		setState(entity, statue);
 		applyGameplayState(entity, statue);
@@ -141,11 +146,44 @@ public final class CopperizationManager {
 		if (state.copperStatue()) freeze(entity, state);
 	}
 
+	/**
+	 * Removes every transient gameplay effect owned by Copperization. This method is deliberately
+	 * independent of an item interaction so statue pickup, restoration and future API callers stay
+	 * consistent and modifiers cannot accumulate across repeated conversions.
+	 */
+	public static void clearCopperizationGameplayState(LivingEntity entity) {
+		LIVE_PROGRESS.remove(entity);
+		removeModifier(entity.getAttribute(Attributes.MOVEMENT_SPEED), MOVEMENT_MODIFIER);
+		removeModifier(entity.getAttribute(Attributes.ATTACK_DAMAGE), ATTACK_DAMAGE_MODIFIER);
+		removeModifier(entity.getAttribute(Attributes.ATTACK_SPEED), ATTACK_SPEED_MODIFIER);
+	}
+
+	/** Restores a partially copperized entity or a copper statue in-place. */
+	public static boolean restore(LivingEntity entity) {
+		if (!entity.hasAttached(ModAttachments.COPPERIZATION_STATE)) return false;
+		CopperizationState state = getState(entity);
+		if (!state.copperizationActive() && state.copperizationProgress() <= 0.0F && !state.copperStatue()) return false;
+
+		clearCopperizationGameplayState(entity);
+		if (state.copperStatue()) {
+			// Old statue items did not contain these flags. Their only safe compatibility
+			// fallback is the pre-existing vanilla defaults; new statues always use the exact snapshot.
+			state.preCopperizationFlags().orElse(PreCopperizationEntityFlags.DEFAULT).restore(entity);
+			entity.setDeltaMovement(0.0D, 0.0D, 0.0D);
+		}
+		entity.removeAttached(ModAttachments.COPPERIZATION_STATE);
+		return true;
+	}
+
 	private static void updateModifier(AttributeInstance attribute, Identifier id, double amount) {
 		if (attribute == null) return;
 		attribute.removeModifier(id);
 		if (amount != 0.0D) attribute.addOrUpdateTransientModifier(
 			new AttributeModifier(id, amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+	}
+
+	private static void removeModifier(AttributeInstance attribute, Identifier id) {
+		if (attribute != null) attribute.removeModifier(id);
 	}
 
 	public static void freeze(LivingEntity entity, CopperizationState state) {

@@ -37,6 +37,17 @@ class CopperizationStateTest {
 	}
 
 	@Test
+	void codecRoundTripsPreCopperizationFlags() {
+		CopperizationState expected = CopperizationState.EMPTY.asStatue(
+			new FrozenPoseSnapshot(1, 2, 3, 45, 12, 40, 50, Pose.STANDING, 0.0F, 0.0F, 0.0F, 0, false, false),
+			new PreCopperizationEntityFlags(true, true, true), 99L
+		);
+		var json = CopperizationState.CODEC.encodeStart(JsonOps.INSTANCE, expected).getOrThrow();
+		CopperizationState actual = CopperizationState.CODEC.parse(JsonOps.INSTANCE, json).getOrThrow();
+		assertEquals(expected.preCopperizationFlags(), actual.preCopperizationFlags());
+	}
+
+	@Test
 	void constantsDefineExpectedBalanceTable() {
 		assertEquals(240, CopperizationConstants.durationTicksForLevel(1));
 		assertEquals(160, CopperizationConstants.durationTicksForLevel(2));

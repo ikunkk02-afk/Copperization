@@ -3,6 +3,7 @@ package com.shouyun.copperization.client.datagen;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.shouyun.copperization.Copperization;
+import com.shouyun.copperization.block.CopperizableBlockClassifier;
 import com.shouyun.copperization.block.CopperizedBlockFamily;
 import com.shouyun.copperization.registry.ModBlocks;
 import java.nio.file.Path;
@@ -71,6 +72,14 @@ public final class CopperizationDataProvider implements DataProvider {
 		for (CopperizedBlockFamily family : ModBlocks.families()) sources.add(BuiltInRegistries.BLOCK.getKey(family.source()).toString());
 		blockTag.add("values", sources);
 		writes.add(save(cache, blockTag, data("tags/block/copperizable_blocks.json")));
+		JsonObject uncopperizable = new JsonObject();
+		uncopperizable.addProperty("replace", false);
+		JsonArray excluded = new JsonArray();
+		for (String path : List.of("air", "cave_air", "void_air", "water", "lava", "fire", "soul_fire", "nether_portal", "end_portal", "end_gateway", "moving_piston", "piston_head", "piston", "sticky_piston", "command_block", "chain_command_block", "repeating_command_block", "structure_block", "structure_void", "jigsaw", "barrier", "light", "spawner", "trial_spawner", "vault")) {
+			excluded.add("minecraft:" + path);
+		}
+		uncopperizable.add("values", excluded);
+		writes.add(save(cache, uncopperizable, data("tags/block/uncopperizable.json")));
 		writes.add(save(cache, tag(false, "copperization:copperization"), root.resolve("data/minecraft/tags/enchantment/non_treasure.json")));
 		writes.add(save(cache, tag(false, "copperization:copperization"), root.resolve("data/minecraft/tags/enchantment/tradeable.json")));
 		JsonObject pickaxeTag = new JsonObject();
@@ -97,12 +106,22 @@ public final class CopperizationDataProvider implements DataProvider {
 		result.addProperty("id", "copperization:copperization_wand");
 		recipe.add("result", result);
 		writes.add(save(cache, recipe, data("recipe/copperization_wand.json")));
+
+		JsonObject restorationRecipe = recipe.deepCopy();
+		JsonArray restorationPattern = new JsonArray();
+		restorationPattern.add("B"); restorationPattern.add("A"); restorationPattern.add("C");
+		restorationRecipe.add("pattern", restorationPattern);
+		restorationRecipe.getAsJsonObject("result").addProperty("id", "copperization:restoration_wand");
+		writes.add(save(cache, restorationRecipe, data("recipe/restoration_wand.json")));
+		writes.add(save(cache, coverageReport(), root.resolve("reports/copperization-coverage.json")));
 	}
 
 	private void writeItemAssets(CachedOutput cache, List<CompletableFuture<?>> writes) {
 		writes.add(save(cache, itemDefinition("copperization:item/copperization_wand"), asset("items/copperization_wand.json")));
+		writes.add(save(cache, itemDefinition("copperization:item/restoration_wand"), asset("items/restoration_wand.json")));
 		writes.add(save(cache, itemDefinition("copperization:item/copper_statue"), asset("items/copper_statue.json")));
 		writes.add(save(cache, flatItemModel("minecraft:item/handheld", "copperization:item/copperization_wand"), asset("models/item/copperization_wand.json")));
+		writes.add(save(cache, flatItemModel("minecraft:item/handheld", "copperization:item/restoration_wand"), asset("models/item/restoration_wand.json")));
 		writes.add(save(cache, flatItemModel("minecraft:item/generated", "copperization:item/copper_statue"), asset("models/item/copper_statue.json")));
 	}
 
@@ -129,6 +148,7 @@ public final class CopperizationDataProvider implements DataProvider {
 
 	private static void addTranslations(Map<String, String> en, Map<String, String> zh) {
 		en.put("item.copperization.copperization_wand", "Copperization Wand");
+		en.put("item.copperization.restoration_wand", "Restoration Wand");
 		en.put("item.copperization.copper_statue", "Copper Statue");
 		en.put("item.copperization.copper_statue.named", "%s Copper Statue");
 		en.put("itemGroup.copperization.copperization", "Copperization");
@@ -142,8 +162,10 @@ public final class CopperizationDataProvider implements DataProvider {
 		en.put("copperization.oxidation.oxidized", "Oxidized");
 		en.put("tag.item.copperization.copperization_enchantable", "Copperization Enchantable Items");
 		en.put("tag.block.copperization.copperizable_blocks", "Copperizable Blocks");
+		en.put("tag.block.copperization.uncopperizable", "Uncopperizable Blocks");
 
 		zh.put("item.copperization.copperization_wand", "铜化法杖");
+		zh.put("item.copperization.restoration_wand", "复原法杖");
 		zh.put("item.copperization.copper_statue", "铜雕像");
 		zh.put("item.copperization.copper_statue.named", "%s铜雕像");
 		zh.put("itemGroup.copperization.copperization", "铜化");
@@ -157,6 +179,42 @@ public final class CopperizationDataProvider implements DataProvider {
 		zh.put("copperization.oxidation.oxidized", "氧化");
 		zh.put("tag.item.copperization.copperization_enchantable", "可铜化附魔物品");
 		zh.put("tag.block.copperization.copperizable_blocks", "可铜化方块");
+		zh.put("tag.block.copperization.uncopperizable", "不可铜化方块");
+	}
+
+	/** Machine-readable final accounting, based on the same classifier used at runtime. */
+	private static JsonObject coverageReport() {
+		Map<CopperizableBlockClassifier.BlockCategory, int[]> categories = new LinkedHashMap<>();
+		for (CopperizableBlockClassifier.BlockCategory category : CopperizableBlockClassifier.BlockCategory.values()) categories.put(category, new int[2]);
+		int total = 0;
+		int supported = 0;
+		for (Block block : BuiltInRegistries.BLOCK) {
+			Identifier id = BuiltInRegistries.BLOCK.getKey(block);
+			if (id == null || !"minecraft".equals(id.getNamespace())) continue;
+			var state = block.defaultBlockState();
+			boolean accepted = CopperizableBlockClassifier.supports(state);
+			CopperizableBlockClassifier.BlockCategory category = CopperizableBlockClassifier.category(state);
+			int[] values = categories.get(category);
+			values[0]++;
+			if (accepted) values[1]++;
+			total++;
+			if (accepted) supported++;
+		}
+		JsonObject report = new JsonObject();
+		report.addProperty("vanilla_blocks_total", total);
+		report.addProperty("supported", supported);
+		report.addProperty("unsupported", total - supported);
+		report.addProperty("coverage_percent", total == 0 ? 0.0D : Math.round(supported * 10000.0D / total) / 100.0D);
+		JsonObject categoryReport = new JsonObject();
+		categories.forEach((category, values) -> {
+			JsonObject row = new JsonObject();
+			row.addProperty("total", values[0]);
+			row.addProperty("supported", values[1]);
+			row.addProperty("unsupported", values[0] - values[1]);
+			categoryReport.add(category.displayName(), row);
+		});
+		report.add("categories", categoryReport);
+		return report;
 	}
 
 	private static JsonObject cost(int base, int perLevel) {

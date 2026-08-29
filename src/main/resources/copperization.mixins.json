@@ -4,6 +4,8 @@
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"EntityStatueFireMixin",
+		"CopperizedGrowthMixin",
+		"LevelChunkCopperizationMixin",
 		"LivingEntityStatueMixin",
 		"ServerLevelCopperizationTickMixin"
 	],

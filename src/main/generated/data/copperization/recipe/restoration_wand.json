@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "A": "minecraft:amethyst_shard",
+    "B": "minecraft:blaze_rod",
+    "C": "minecraft:copper_ingot"
+  },
+  "pattern": [
+    "B",
+    "A",
+    "C"
+  ],
+  "result": {
+    "id": "copperization:restoration_wand"
+  }
+}
