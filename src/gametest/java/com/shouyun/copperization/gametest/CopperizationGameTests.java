@@ -52,24 +52,64 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 		context.succeed();
 	}
 
-	@GameTest
-	public void enchantedCopperSwordHitAddsProgress(GameTestHelper context) {
+	@GameTest(maxTicks = 200)
+	public void enchantedCopperSwordHitStartsAutomaticCopperization(GameTestHelper context) {
 		var player = context.makeMockServerPlayer(GameType.SURVIVAL);
-		var zombie = context.spawn(EntityTypes.ZOMBIE, 1, 2, 1);
+		var horse = context.spawn(EntityTypes.HORSE, 1, 2, 1);
 		var enchantment = context.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(ModEnchantments.COPPERIZATION);
 		ItemStack sword = new ItemStack(Items.COPPER_SWORD);
 		EnchantmentHelper.updateEnchantments(sword, mutable -> mutable.set(enchantment, 2));
 		player.setItemInHand(InteractionHand.MAIN_HAND, sword);
-		player.attack(zombie);
-		float progress = CopperizationManager.getState(zombie).copperizationProgress();
-		if (Math.abs(progress - 0.22F) > 0.0001F) throw new AssertionError("Expected level II hit to add 22%, got " + progress);
+		player.attack(horse);
+		CopperizationState started = CopperizationManager.getState(horse);
+		if (!started.copperizationActive() || started.copperizationLevel() != 2 || started.copperizationProgress() != 0.0F) {
+			throw new AssertionError("A hit must start level II copperization without adding a progress chunk: " + started);
+		}
+		context.runAfterDelay(170, () -> {
+			if (!CopperizationManager.isStatue(horse)) throw new AssertionError("Horse did not automatically finish after one hit");
+			context.succeed();
+		});
+	}
+
+	@GameTest
+	public void strongerHitUpgradesSpeedWithoutResettingProgress(GameTestHelper context) {
+		var cow = context.spawn(EntityTypes.COW, 1, 2, 1);
+		CopperizationManager.setProgress(cow, 0.35F);
+		CopperizationManager.startCopperization(cow, 1);
+		CopperizationManager.startCopperization(cow, 3);
+		CopperizationState upgraded = CopperizationManager.getState(cow);
+		if (Math.abs(upgraded.copperizationProgress() - 0.35F) > 0.0001F || upgraded.copperizationLevel() != 3) {
+			throw new AssertionError("A stronger hit reset progress instead of only upgrading speed: " + upgraded);
+		}
 		context.succeed();
+	}
+
+	@GameTest(maxTicks = 130)
+	public void vanillaLivingEntitiesCopperizeIndependently(GameTestHelper context) {
+		var entities = java.util.List.of(
+			context.spawn(EntityTypes.HORSE, 1, 2, 1),
+			context.spawn(EntityTypes.ZOMBIE, 2, 2, 1),
+			context.spawn(EntityTypes.SKELETON, 3, 2, 1),
+			context.spawn(EntityTypes.CREEPER, 4, 2, 1),
+			context.spawn(EntityTypes.COW, 5, 2, 1),
+			context.spawn(EntityTypes.VILLAGER, 6, 2, 1)
+		);
+		entities.forEach(entity -> CopperizationManager.startCopperization(entity, 3));
+		context.runAfterDelay(110, () -> {
+			for (var entity : entities) {
+				if (!CopperizationManager.isStatue(entity)) {
+					throw new AssertionError(entity.getType() + " did not independently reach statue state");
+				}
+			}
+			context.succeed();
+		});
 	}
 
 	@GameTest
 	public void attachmentSurvivesEntitySaveAndLoad(GameTestHelper context) {
 		var original = context.spawn(EntityTypes.COW, 1, 2, 1);
-		CopperizationManager.addProgress(original, 0.50F);
+		CopperizationManager.setProgress(original, 0.50F);
+		CopperizationManager.startCopperization(original, 2);
 		TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, context.getLevel().registryAccess());
 		original.saveWithoutId(output);
 		var restored = EntityTypes.COW.create(context.getLevel(), net.minecraft.world.entity.EntitySpawnReason.LOAD);
@@ -78,6 +118,9 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 		if (Math.abs(CopperizationManager.getState(restored).copperizationProgress() - 0.50F) > 0.0001F) {
 			throw new AssertionError("Persistent attachment was not restored");
 		}
+		if (!CopperizationManager.getState(restored).copperizationActive() || CopperizationManager.getState(restored).copperizationLevel() != 2) {
+			throw new AssertionError("Active state or copperization level was not restored");
+		}
 		context.succeed();
 	}
 
@@ -85,7 +128,7 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 	public void statueFreezesAndPreservesEquipment(GameTestHelper context) {
 		var zombie = context.spawn(EntityTypes.ZOMBIE, 1, 2, 1);
 		zombie.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.DIAMOND_SWORD));
-		CopperizationManager.addProgress(zombie, 1.0F);
+		CopperizationManager.setProgress(zombie, 1.0F);
 		double x = zombie.getX();
 		if (!CopperizationManager.isStatue(zombie) || !zombie.isNoAi()) throw new AssertionError("Zombie was not frozen");
 		ItemStack statue = CopperStatueManager.createStatueStack(zombie);
@@ -114,7 +157,7 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 		var player = context.makeMockServerPlayer(GameType.SURVIVAL);
 		var zombie = context.spawn(EntityTypes.ZOMBIE, 1, 2, 1);
 		zombie.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.DIAMOND_SWORD));
-		CopperizationManager.addProgress(zombie, 1.0F);
+		CopperizationManager.setProgress(zombie, 1.0F);
 
 		ItemStack honeycomb = new ItemStack(Items.HONEYCOMB, 2);
 		player.setItemInHand(InteractionHand.MAIN_HAND, honeycomb);

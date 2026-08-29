@@ -17,18 +17,18 @@ public final class CopperizationClientGameTest implements FabricClientGameTest {
 			singleplayer.getServer().runOnServer(server -> {
 				var level = connection.getServerLevel();
 				var player = connection.getServerPlayer();
-				float[] stages = {0.15F, 0.40F, 0.70F, 1.0F};
+				float[] stages = {0.25F, 0.50F, 0.75F, 1.0F};
 				for (int index = 0; index < stages.length; index++) {
-					var cow = EntityTypes.COW.create(level, EntitySpawnReason.COMMAND);
-					if (cow == null) throw new AssertionError("Could not create render-test cow");
-					cow.setPos(player.getX() + (index - 1.5D) * 2.2D, player.getY(), player.getZ() + 7.0D);
-					cow.setYRot(180.0F);
-					cow.setNoAi(true);
-					if (!level.addFreshEntity(cow)) throw new AssertionError("Could not spawn render-test cow");
-					CopperizationManager.addProgress(cow, stages[index]);
+					var horse = EntityTypes.HORSE.create(level, EntitySpawnReason.COMMAND);
+					if (horse == null) throw new AssertionError("Could not create render-test horse");
+					horse.setPos(player.getX() + (index - 1.5D) * 2.2D, player.getY(), player.getZ() + 7.0D);
+					horse.setYRot(180.0F);
+					horse.setNoAi(true);
+					if (!level.addFreshEntity(horse)) throw new AssertionError("Could not spawn render-test horse");
+					CopperizationManager.setProgress(horse, stages[index]);
 				}
 			});
-			connection.waitForClientboundEntityUpdates(EntityTypes.COW);
+			connection.waitForClientboundEntityUpdates(EntityTypes.HORSE);
 			connection.waitForChunksRender();
 			context.waitTicks(20);
 			context.takeScreenshot("copperization-render-stages");

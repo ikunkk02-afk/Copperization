@@ -1,14 +1,19 @@
 package com.shouyun.copperization;
 
 public final class CopperizationConstants {
-	public static final float[] ENCHANTMENT_PROGRESS = {0.0F, 0.15F, 0.22F, 0.30F};
+	public static final int COPPERIZATION_DURATION_LEVEL_1 = 12 * 20;
+	public static final int COPPERIZATION_DURATION_LEVEL_2 = 8 * 20;
+	public static final int COPPERIZATION_DURATION_LEVEL_3 = 5 * 20;
+	public static final int COPPERIZATION_SYNC_INTERVAL_TICKS = 4;
+	public static final int COPPERIZATION_PARTICLE_INTERVAL_TICKS = 20;
+	public static final float COPPERIZATION_COMPLETION_EPSILON = 1.0E-5F;
 	public static final float LIGHT_THRESHOLD = 0.25F;
 	public static final float MEDIUM_THRESHOLD = 0.50F;
 	public static final float HEAVY_THRESHOLD = 0.75F;
 	public static final float STATUE_THRESHOLD = 1.0F;
 
-	public static final double[] MOVEMENT_MULTIPLIERS = {0.0D, -0.10D, -0.30D, -0.60D};
-	public static final double[] COMBAT_MULTIPLIERS = {0.0D, 0.0D, -0.15D, -0.40D};
+	public static final double MINIMUM_MOVEMENT_MULTIPLIER = 0.05D;
+	public static final double MINIMUM_COMBAT_MULTIPLIER = 0.20D;
 
 	public static final int WAND_DURABILITY = 256;
 	public static final int WAND_COOLDOWN_TICKS = 20;
@@ -20,14 +25,29 @@ public final class CopperizationConstants {
 	private CopperizationConstants() {
 	}
 
-	public static float progressForLevel(int level) {
-		return ENCHANTMENT_PROGRESS[Math.clamp(level, 0, 3)];
+	public static int durationTicksForLevel(int level) {
+		return switch (Math.clamp(level, 1, 3)) {
+			case 1 -> COPPERIZATION_DURATION_LEVEL_1;
+			case 2 -> COPPERIZATION_DURATION_LEVEL_2;
+			default -> COPPERIZATION_DURATION_LEVEL_3;
+		};
 	}
 
-	public static int debuffStage(float progress) {
-		if (progress >= HEAVY_THRESHOLD) return 3;
-		if (progress >= MEDIUM_THRESHOLD) return 2;
-		if (progress >= LIGHT_THRESHOLD) return 1;
-		return 0;
+	public static float progressPerTick(int level) {
+		return 1.0F / durationTicksForLevel(level);
+	}
+
+	public static double movementModifier(float progress) {
+		return multiplierModifier(progress, MINIMUM_MOVEMENT_MULTIPLIER);
+	}
+
+	public static double combatModifier(float progress) {
+		return multiplierModifier(Math.max(0.0F, (progress - LIGHT_THRESHOLD) / (1.0F - LIGHT_THRESHOLD)), MINIMUM_COMBAT_MULTIPLIER);
+	}
+
+	private static double multiplierModifier(float normalizedProgress, double minimumMultiplier) {
+		double progress = Math.clamp(normalizedProgress, 0.0F, 1.0F);
+		double eased = progress * progress * (3.0D - 2.0D * progress);
+		return (1.0D + (minimumMultiplier - 1.0D) * eased) - 1.0D;
 	}
 }

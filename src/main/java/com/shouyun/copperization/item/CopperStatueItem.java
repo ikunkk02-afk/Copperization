@@ -68,8 +68,7 @@ public class CopperStatueItem extends Item {
 		CopperizationState state = data.state();
 		var pose = state.frozenPose().orElseGet(() -> com.shouyun.copperization.copper.FrozenPoseSnapshot.capture(statue))
 			.at(targetPos.getX() + 0.5D, targetPos.getY(), targetPos.getZ() + 0.5D, yaw);
-		state = new CopperizationState(1.0F, state.oxidationProgress(), true, state.waxed(), java.util.Optional.of(pose),
-			level.getGameTime() + CopperizationConstants.OXIDATION_SAMPLE_INTERVAL);
+		state = state.asStatue(pose, level.getGameTime() + CopperizationConstants.OXIDATION_SAMPLE_INTERVAL);
 		statue.setAttached(ModAttachments.COPPERIZATION_STATE, state);
 		CopperizationManager.applyGameplayState(statue, state);
 		if (!level.noCollision(statue, statue.getBoundingBox()) || !level.addFreshEntity(statue)) return InteractionResult.FAIL;

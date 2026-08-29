@@ -6,6 +6,7 @@ import net.minecraft.world.level.block.WeatheringCopper;
 
 public record CopperRenderState(
 	float progress,
+	float previousProgress,
 	WeatheringCopper.WeatherState oxidation,
 	boolean statue,
 	boolean waxed,

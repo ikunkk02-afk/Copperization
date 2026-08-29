@@ -11,14 +11,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ServerLevel.class)
-public abstract class ServerLevelStatueTickMixin {
+public abstract class ServerLevelCopperizationTickMixin {
 	@Inject(method = "tickNonPassenger", at = @At("HEAD"), cancellable = true)
-	private void copperization$freezeStatueTick(Entity entity, CallbackInfo ci) {
-		if (entity instanceof LivingEntity living && CopperizationManager.isStatue(living)) {
-			ServerLevel level = (ServerLevel) (Object) this;
-			CopperOxidationManager.tickStatue(level, living);
-			CopperizationManager.freeze(living, CopperizationManager.getState(living));
-			ci.cancel();
-		}
+	private void copperization$tickLivingCopperization(Entity entity, CallbackInfo ci) {
+		if (!(entity instanceof LivingEntity living)) return;
+		ServerLevel level = (ServerLevel) (Object) this;
+		CopperizationManager.tickCopperization(level, living);
+		if (!CopperizationManager.isStatue(living)) return;
+		CopperOxidationManager.tickStatue(level, living);
+		CopperizationManager.freeze(living, CopperizationManager.getState(living));
+		ci.cancel();
 	}
 }

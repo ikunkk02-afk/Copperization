@@ -13,6 +13,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LivingEntityRendererStateMixin {
 	@Inject(method = "extractRenderState", at = @At("TAIL"))
 	private void copperization$extractCopperState(LivingEntity entity, LivingEntityRenderState state, float partialTicks, CallbackInfo ci) {
-		CopperRenderStateExtractor.extract(entity, state);
+		CopperRenderStateExtractor.extract(entity, state, partialTicks);
 	}
 }
