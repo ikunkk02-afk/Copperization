@@ -11,6 +11,11 @@ public final class CopperizationConstants {
 	public static final float MEDIUM_THRESHOLD = 0.50F;
 	public static final float HEAVY_THRESHOLD = 0.75F;
 	public static final float STATUE_THRESHOLD = 1.0F;
+	public static final int STATUE_MINING_PROGRESS_TIMEOUT_TICKS = 40;
+	public static final float STATUE_MINING_BASE_PROGRESS = 0.075F;
+	public static final float STATUE_MINING_SPEED_DIVISOR = 16.0F;
+	public static final float STATUE_MINING_MIN_PROGRESS_PER_HIT = 0.02F;
+	public static final float STATUE_MINING_MAX_PROGRESS_PER_HIT = 0.50F;
 
 	public static final double MINIMUM_MOVEMENT_MULTIPLIER = 0.05D;
 	public static final double MINIMUM_COMBAT_MULTIPLIER = 0.20D;

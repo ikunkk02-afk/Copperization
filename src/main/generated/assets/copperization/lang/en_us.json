@@ -95,6 +95,7 @@
   "item.copperization.copper_statue": "Copper Statue",
   "item.copperization.copper_statue.named": "%s Copper Statue",
   "item.copperization.copperization_wand": "Copperization Wand",
+  "itemGroup.copperization.copperization": "Copperization",
   "tag.block.copperization.copperizable_blocks": "Copperizable Blocks",
   "tag.item.copperization.copperization_enchantable": "Copperization Enchantable Items",
   "tooltip.copperization.oxidation": "Oxidation: %s",

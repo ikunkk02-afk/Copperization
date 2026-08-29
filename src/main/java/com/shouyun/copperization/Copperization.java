@@ -6,6 +6,7 @@ import com.shouyun.copperization.copper.CopperizationManager;
 import com.shouyun.copperization.copper.CopperStatueManager;
 import com.shouyun.copperization.registry.ModAttachments;
 import com.shouyun.copperization.registry.ModBlocks;
+import com.shouyun.copperization.registry.ModCreativeTabs;
 import com.shouyun.copperization.registry.ModItems;
 import com.shouyun.copperization.registry.ModDataComponents;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ public class Copperization implements ModInitializer {
 		ModDataComponents.register();
 		ModBlocks.register();
 		ModItems.register();
+		ModCreativeTabs.register();
 		CopperizationManager.registerEvents();
 		CopperStatueManager.registerEvents();
 		LOGGER.info("Copperization 0.1.0 initialized");

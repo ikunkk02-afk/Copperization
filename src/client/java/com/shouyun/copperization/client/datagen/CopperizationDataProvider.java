@@ -131,6 +131,7 @@ public final class CopperizationDataProvider implements DataProvider {
 		en.put("item.copperization.copperization_wand", "Copperization Wand");
 		en.put("item.copperization.copper_statue", "Copper Statue");
 		en.put("item.copperization.copper_statue.named", "%s Copper Statue");
+		en.put("itemGroup.copperization.copperization", "Copperization");
 		en.put("enchantment.copperization.copperization", "Copperization");
 		en.put("tooltip.copperization.oxidation", "Oxidation: %s");
 		en.put("tooltip.copperization.waxed", "Waxed");
@@ -145,6 +146,7 @@ public final class CopperizationDataProvider implements DataProvider {
 		zh.put("item.copperization.copperization_wand", "铜化法杖");
 		zh.put("item.copperization.copper_statue", "铜雕像");
 		zh.put("item.copperization.copper_statue.named", "%s铜雕像");
+		zh.put("itemGroup.copperization.copperization", "铜化");
 		zh.put("enchantment.copperization.copperization", "铜化");
 		zh.put("tooltip.copperization.oxidation", "氧化阶段：%s");
 		zh.put("tooltip.copperization.waxed", "已上蜡");

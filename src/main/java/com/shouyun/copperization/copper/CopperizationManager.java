@@ -150,6 +150,7 @@ public final class CopperizationManager {
 
 	public static void freeze(LivingEntity entity, CopperizationState state) {
 		state.frozenPose().ifPresent(snapshot -> snapshot.applyTransform(entity));
+		clearStatueFire(entity);
 		entity.setDeltaMovement(0.0D, 0.0D, 0.0D);
 		entity.setNoGravity(true);
 		entity.setInvulnerable(true);
@@ -159,6 +160,11 @@ public final class CopperizationManager {
 			mob.setTarget(null);
 			mob.getNavigation().stop();
 		}
+	}
+
+	public static void clearStatueFire(LivingEntity entity) {
+		entity.clearFire();
+		entity.setSharedFlagOnFire(false);
 	}
 
 	private static void onEntityLoad(Entity entity, ServerLevel level) {

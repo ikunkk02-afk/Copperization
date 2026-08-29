@@ -3,6 +3,7 @@
 	"package": "com.shouyun.copperization.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
+		"EntityStatueFireMixin",
 		"LivingEntityStatueMixin",
 		"ServerLevelCopperizationTickMixin"
 	],

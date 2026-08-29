@@ -95,6 +95,7 @@
   "item.copperization.copper_statue": "铜雕像",
   "item.copperization.copper_statue.named": "%s铜雕像",
   "item.copperization.copperization_wand": "铜化法杖",
+  "itemGroup.copperization.copperization": "铜化",
   "tag.block.copperization.copperizable_blocks": "可铜化方块",
   "tag.item.copperization.copperization_enchantable": "可铜化附魔物品",
   "tooltip.copperization.oxidation": "氧化阶段：%s",
