@@ -21,6 +21,7 @@ out vec4 fragColor;
 
 const vec3 LUMA_WEIGHTS = vec3(0.2126, 0.7152, 0.0722);
 const vec3 FRESH_COPPER = vec3(0.753, 0.424, 0.314);
+const float STATUE_VALUE_SCALE = 0.75;
 
 struct CopperVisualProfile {
     vec3 stageColor;
@@ -94,7 +95,8 @@ void main() {
     tonalCopper += vec3(0.055, 0.022, 0.006) * pow(luminance, 3.0);
     vec3 convertedCopper = mix(tonalCopper, multipliedDetail, profile.textureRetention);
     float convertedLuminance = dot(convertedCopper, LUMA_WEIGHTS);
-    convertedCopper = mix(vec3(convertedLuminance), convertedCopper, profile.saturation) * profile.valueScale;
+    convertedCopper = mix(vec3(convertedLuminance), convertedCopper, profile.saturation)
+        * profile.valueScale * STATUE_VALUE_SCALE;
     convertedCopper = clamp(convertedCopper, 0.0, 1.0);
 
     // Waxing freezes the server-side stage; it intentionally does not change this palette.
