@@ -38,7 +38,7 @@ public final class ModCreativeTabs {
 	}
 
 	public static List<ItemStack> creativeContents() {
-		List<ItemStack> contents = new ArrayList<>(6 + ModBlocks.families().size() * 8);
+		List<ItemStack> contents = new ArrayList<>(6 + (ModBlocks.families().size() + ModBlocks.positionalItemFamilies().size()) * 8);
 		contents.add(new ItemStack(ModItems.COPPERIZATION_WAND));
 		contents.add(new ItemStack(ModItems.RESTORATION_WAND));
 		contents.add(CopperStatueManager.createCreativeSample(EntityTypes.ZOMBIE));
@@ -63,6 +63,10 @@ public final class ModCreativeTabs {
 		Function<WeatheringCopperCollection.ByState<Item>, Item> stage
 	) {
 		for (var family : ModBlocks.families()) {
+			var collection = waxed ? family.items().waxed() : family.items().weathering();
+			contents.add(new ItemStack(stage.apply(collection)));
+		}
+		for (var family : ModBlocks.positionalItemFamilies()) {
 			var collection = waxed ? family.items().waxed() : family.items().weathering();
 			contents.add(new ItemStack(stage.apply(collection)));
 		}

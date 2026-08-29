@@ -54,6 +54,16 @@ public final class CopperizedBlockStorage {
 		return true;
 	}
 
+	/** Installs the stage carried by a positional copperized BlockItem after vanilla placement succeeds. */
+	public static void place(ServerLevel level, BlockPos pos, CopperizedBlockData requested) {
+		long nextTick = requested.waxed() || requested.oxidationStage() >= 3
+			? Long.MAX_VALUE : level.getGameTime() + CopperizationConstants.OXIDATION_SAMPLE_INTERVAL;
+		CopperizedBlockData data = new CopperizedBlockData(requested.oxidationStage(), requested.waxed(), nextTick);
+		put(level.getChunkAt(pos), pos, data);
+		if (nextTick != Long.MAX_VALUE) schedule(level, pos, nextTick);
+		notifyVisualChange(level, pos, level.getBlockState(pos));
+	}
+
 	public static boolean restore(ServerLevel level, BlockPos pos) {
 		LevelChunk chunk = level.getChunkAt(pos);
 		CopperizedChunkState current = chunk.getAttachedOrElse(ModAttachments.COPPERIZED_BLOCKS, CopperizedChunkState.EMPTY);

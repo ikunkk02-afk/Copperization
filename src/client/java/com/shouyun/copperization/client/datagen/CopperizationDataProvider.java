@@ -2,11 +2,14 @@ package com.shouyun.copperization.client.datagen;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.shouyun.copperization.Copperization;
 import com.shouyun.copperization.block.CopperizableBlockClassifier;
 import com.shouyun.copperization.block.CopperizedBlockFamily;
 import com.shouyun.copperization.registry.ModBlocks;
 import java.nio.file.Path;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,6 +44,7 @@ public final class CopperizationDataProvider implements DataProvider {
 		for (CopperizedBlockFamily family : ModBlocks.families()) {
 			writeFamily(cache, writes, family, en, zh);
 		}
+		ModBlocks.positionalItemFamilies().forEach(family -> writePositionalItemFamily(cache, writes, family, en, zh));
 		addTranslations(en, zh);
 		writes.add(save(cache, language(en), asset("lang/en_us.json")));
 		writes.add(save(cache, language(zh), asset("lang/zh_cn.json")));
@@ -137,8 +141,8 @@ public final class CopperizationDataProvider implements DataProvider {
 			writes.add(save(cache, blockState(name), asset("blockstates/" + name + ".json")));
 			writes.add(save(cache, ModBlocks.usesLegacyTexture(family)
 				? blockModel(textureName) : sourceBlockModel(family.source()), asset("models/block/" + name + ".json")));
-			writes.add(save(cache, itemDefinition(ModBlocks.usesLegacyTexture(family)
-				? "copperization:block/" + name : sourceItemModel(family.source())), asset("items/" + name + ".json")));
+			writes.add(save(cache, ModBlocks.usesLegacyTexture(family)
+				? itemDefinition("copperization:block/" + name) : sourceItemDefinition(family.source()), asset("items/" + name + ".json")));
 			writes.add(save(cache, selfDrop(id.toString()), data("loot_table/blocks/" + name + ".json")));
 			int stage = i % 4;
 			boolean waxed = i >= 4;
@@ -146,6 +150,27 @@ public final class CopperizationDataProvider implements DataProvider {
 			String baseZh = chineseName(family.name());
 			en.put("block.copperization." + name, (waxed ? "Waxed " : "") + STAGE_EN[stage] + "Copperized " + baseEn);
 			zh.put("block.copperization." + name, (waxed ? "上蜡的" : "") + STAGE_ZH[stage] + "铜化" + baseZh);
+		}
+	}
+
+	private void writePositionalItemFamily(
+		CachedOutput cache,
+		List<CompletableFuture<?>> writes,
+		com.shouyun.copperization.block.CopperizedItemFamily family,
+		Map<String, String> en,
+		Map<String, String> zh
+	) {
+		List<Item> items = family.items().asList();
+		for (int i = 0; i < items.size(); i++) {
+			Identifier id = BuiltInRegistries.ITEM.getKey(items.get(i));
+			String name = id.getPath();
+			writes.add(save(cache, sourceItemDefinition(family.source()), asset("items/" + name + ".json")));
+			int stage = i % 4;
+			boolean waxed = i >= 4;
+			en.put("block.copperization." + name, (waxed ? "Waxed " : "") + STAGE_EN[stage]
+				+ "Copperized " + displayName(family.name()));
+			zh.put("block.copperization." + name, (waxed ? "上蜡的" : "") + STAGE_ZH[stage]
+				+ "铜化" + chineseName(family.name()));
 		}
 	}
 
@@ -262,6 +287,19 @@ public final class CopperizationDataProvider implements DataProvider {
 		if (type.contains("TrapDoor")) return base + "_bottom";
 		if (type.contains("Door")) return id.getNamespace() + ":item/" + id.getPath();
 		return base;
+	}
+
+	private static JsonObject sourceItemDefinition(Block source) {
+		Identifier id = BuiltInRegistries.ITEM.getKey(source.asItem());
+		String resource = "assets/" + id.getNamespace() + "/items/" + id.getPath() + ".json";
+		try (var stream = CopperizationDataProvider.class.getClassLoader().getResourceAsStream(resource)) {
+			if (stream != null) {
+				return JsonParser.parseReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+			}
+		} catch (Exception exception) {
+			Copperization.LOGGER.warn("Could not copy source item definition {}", resource, exception);
+		}
+		return itemDefinition(sourceItemModel(source));
 	}
 
 	private static JsonObject selfDrop(String id) {

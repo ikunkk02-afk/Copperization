@@ -27,6 +27,10 @@ public final class CopperizableBlockRegistry {
 		for (Item copperized : family.items().asList()) COPPERIZED_ITEM_MAPPINGS.put(copperized, mapping);
 	}
 
+	public static void registerPositionalItem(Item item, Block source) {
+		COPPERIZED_ITEM_MAPPINGS.put(item, CopperizationMapping.positional(source));
+	}
+
 	public static Optional<CopperizedBlockFamily> get(Block source) {
 		return Optional.ofNullable(ORIGINAL_MAPPINGS.get(source)).flatMap(CopperizationMapping::legacyFamily);
 	}

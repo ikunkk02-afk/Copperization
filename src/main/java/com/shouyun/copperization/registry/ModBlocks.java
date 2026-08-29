@@ -3,6 +3,7 @@ package com.shouyun.copperization.registry;
 import com.shouyun.copperization.Copperization;
 import com.shouyun.copperization.block.CopperizableBlockRegistry;
 import com.shouyun.copperization.block.CopperizedBlockFamily;
+import com.shouyun.copperization.block.CopperizedItemFamily;
 import com.shouyun.copperization.block.CopperizableBlockClassifier;
 import com.shouyun.copperization.block.WeatheringCopperFenceBlock;
 import com.shouyun.copperization.block.WeatheringCopperFenceGateBlock;
@@ -11,6 +12,7 @@ import com.shouyun.copperization.block.WeatheringCopperTrapDoorBlock;
 import com.shouyun.copperization.block.WeatheringCopperSlabBlock;
 import com.shouyun.copperization.block.WeatheringCopperStairBlock;
 import com.shouyun.copperization.block.WeatheringCopperWallBlock;
+import com.shouyun.copperization.item.PositionalCopperizedBlockItem;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -41,6 +43,7 @@ import net.minecraft.world.level.block.state.properties.WoodType;
 
 public final class ModBlocks {
 	private static final List<CopperizedBlockFamily> FAMILIES = new ArrayList<>();
+	private static final List<CopperizedItemFamily> POSITIONAL_ITEM_FAMILIES = new ArrayList<>();
 	private static final Set<String> LEGACY_TEXTURE_FAMILIES = Set.of(
 		"stone", "cobblestone", "stone_bricks", "deepslate", "cobbled_deepslate", "deepslate_bricks",
 		"bricks", "blackstone", "polished_blackstone", "end_stone", "nether_bricks"
@@ -66,7 +69,48 @@ public final class ModBlocks {
 		registerBasicFullBlockFamilies();
 		registerShapeFamilies();
 		registerVanillaFamily("chest", Blocks.CHEST, Blocks.COPPER_CHEST, Items.COPPER_CHEST);
-		Copperization.LOGGER.info("Registered {} copperizable block families ({} blocks)", FAMILIES.size(), FAMILIES.size() * 8);
+		registerPositionalItemFamilies();
+		Copperization.LOGGER.info("Registered {} physical families ({} blocks) and {} positional item families",
+			FAMILIES.size(), FAMILIES.size() * 8, POSITIONAL_ITEM_FAMILIES.size());
+	}
+
+	private static void registerPositionalItemFamilies() {
+		List<Block> vanillaSnapshot = BuiltInRegistries.BLOCK.stream()
+			.filter(block -> "minecraft".equals(BuiltInRegistries.BLOCK.getKey(block).getNamespace()))
+			.toList();
+		for (Block source : vanillaSnapshot) {
+			Identifier id = BuiltInRegistries.BLOCK.getKey(source);
+			if (source.asItem() == Items.AIR || source instanceof WeatheringCopper || isVanillaCopperSource(id)
+				|| CopperizableBlockRegistry.hasPhysicalMapping(source)
+				|| !CopperizableBlockClassifier.supportsDuringRegistration(source.defaultBlockState())) continue;
+			WeatheringCopperCollection.ByState<Item> weathering = new WeatheringCopperCollection.ByState<>(
+				registerPositionalItem("copperized_" + id.getPath(), source, 0, false),
+				registerPositionalItem("exposed_copperized_" + id.getPath(), source, 1, false),
+				registerPositionalItem("weathered_copperized_" + id.getPath(), source, 2, false),
+				registerPositionalItem("oxidized_copperized_" + id.getPath(), source, 3, false)
+			);
+			WeatheringCopperCollection.ByState<Item> waxed = new WeatheringCopperCollection.ByState<>(
+				registerPositionalItem("waxed_copperized_" + id.getPath(), source, 0, true),
+				registerPositionalItem("waxed_exposed_copperized_" + id.getPath(), source, 1, true),
+				registerPositionalItem("waxed_weathered_copperized_" + id.getPath(), source, 2, true),
+				registerPositionalItem("waxed_oxidized_copperized_" + id.getPath(), source, 3, true)
+			);
+			POSITIONAL_ITEM_FAMILIES.add(new CopperizedItemFamily(id.getPath(), source, new WeatheringCopperCollection<>(weathering, waxed)));
+		}
+	}
+
+	private static boolean isVanillaCopperSource(Identifier id) {
+		return id.getPath().contains("copper") || id.getPath().endsWith("lightning_rod");
+	}
+
+	private static Item registerPositionalItem(String name, Block source, int stage, boolean waxed) {
+		Identifier id = Copperization.id(name);
+		ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
+		Item item = new PositionalCopperizedBlockItem(source, stage, waxed,
+			new Item.Properties().useBlockDescriptionPrefix().setId(key));
+		Registry.register(BuiltInRegistries.ITEM, key, item);
+		CopperizableBlockRegistry.registerPositionalItem(item, source);
+		return item;
 	}
 
 	private static void registerShapeFamilies() {
@@ -187,5 +231,9 @@ public final class ModBlocks {
 
 	public static List<CopperizedBlockFamily> families() {
 		return List.copyOf(FAMILIES);
+	}
+
+	public static List<CopperizedItemFamily> positionalItemFamilies() {
+		return List.copyOf(POSITIONAL_ITEM_FAMILIES);
 	}
 }

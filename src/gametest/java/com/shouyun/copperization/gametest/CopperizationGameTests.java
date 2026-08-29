@@ -88,6 +88,24 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 	}
 
 	@GameTest
+	public void positionalPlantVariantPlacesCopperizedPoppy(GameTestHelper context) {
+		var family = ModBlocks.positionalItemFamilies().stream().filter(entry -> entry.source() == Blocks.POPPY)
+			.findFirst().orElseThrow(() -> new AssertionError("Copperized Poppy variants were not registered"));
+		var player = context.makeMockServerPlayer(GameType.SURVIVAL);
+		ItemStack stack = new ItemStack(family.items().weathering().weathered());
+		player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+		BlockPos ground = new BlockPos(3, 1, 1);
+		context.setBlock(ground, Blocks.DIRT);
+		stack.getItem().useOn(useContext(context, player, ground));
+		BlockPos flower = ground.above();
+		var data = CopperizedBlockStorage.get(context.getLevel(), context.absolutePos(flower));
+		if (!context.getBlockState(flower).is(Blocks.POPPY) || data == null || data.oxidationStage() != 2 || data.waxed()) {
+			throw new AssertionError("Weathered Copperized Poppy item did not preserve the Poppy block and carried stage");
+		}
+		context.succeed();
+	}
+
+	@GameTest
 	public void enchantmentOnlySupportsCopperSword(GameTestHelper context) {
 		var enchantment = context.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(ModEnchantments.COPPERIZATION).value();
 		if (!enchantment.isSupportedItem(new ItemStack(Items.COPPER_SWORD))) throw new AssertionError("Copper sword should be supported");
@@ -413,7 +431,8 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 			throw new AssertionError("Copperization creative tab or icon was not registered");
 		}
 		List<ItemStack> contents = ModCreativeTabs.creativeContents();
-		if (contents.size() != 6 + ModBlocks.families().size() * 8 || !contents.getFirst().is(ModItems.COPPERIZATION_WAND)
+		int familySpan = ModBlocks.families().size() + ModBlocks.positionalItemFamilies().size();
+		if (contents.size() != 6 + familySpan * 8 || !contents.getFirst().is(ModItems.COPPERIZATION_WAND)
 			|| !contents.get(1).is(ModItems.RESTORATION_WAND)) {
 			throw new AssertionError("Unexpected creative tab size or first item: " + contents.size());
 		}
@@ -445,7 +464,7 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 					case 2 -> byState.weathered();
 					default -> byState.oxidized();
 				};
-				ItemStack actual = contents.get(6 + stage * ModBlocks.families().size() + familyIndex);
+				ItemStack actual = contents.get(6 + stage * familySpan + familyIndex);
 				if (!actual.is(expected)) throw new AssertionError("Creative block ordering mismatch at stage " + stage + ", family " + family.name());
 			}
 		}
