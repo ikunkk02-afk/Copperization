@@ -379,9 +379,15 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 			throw new AssertionError("Copperization creative tab or icon was not registered");
 		}
 		List<ItemStack> contents = ModCreativeTabs.creativeContents();
-		if (contents.size() != 94 || !contents.getFirst().is(ModItems.COPPERIZATION_WAND)
+		if (contents.size() <= 94 || !contents.getFirst().is(ModItems.COPPERIZATION_WAND)
 			|| !contents.get(1).is(ModItems.RESTORATION_WAND)) {
 			throw new AssertionError("Unexpected creative tab size or first item: " + contents.size());
+		}
+		for (var expected : List.of(Items.OAK_STAIRS, Items.OAK_SLAB, Items.OAK_FENCE, Items.OAK_DOOR,
+			Items.OAK_LEAVES, Items.OAK_SAPLING, Items.POPPY, Items.SUGAR_CANE, Items.CACTUS, Items.BAMBOO, Items.KELP)) {
+			if (contents.stream().noneMatch(stack -> stack.is(expected))) {
+				throw new AssertionError("Missing generic copperizable creative item: " + expected);
+			}
 		}
 
 		var sampleTypes = List.of(EntityTypes.ZOMBIE, EntityTypes.SKELETON, EntityTypes.CREEPER, EntityTypes.VILLAGER);

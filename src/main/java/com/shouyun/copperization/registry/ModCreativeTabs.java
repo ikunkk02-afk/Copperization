@@ -1,9 +1,13 @@
 package com.shouyun.copperization.registry;
 
 import com.shouyun.copperization.Copperization;
+import com.shouyun.copperization.block.CopperizableBlockClassifier;
 import com.shouyun.copperization.copper.CopperStatueManager;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
 import net.minecraft.core.Registry;
@@ -15,6 +19,7 @@ import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.WeatheringCopperCollection;
 
 public final class ModCreativeTabs {
@@ -38,7 +43,7 @@ public final class ModCreativeTabs {
 	}
 
 	public static List<ItemStack> creativeContents() {
-		List<ItemStack> contents = new ArrayList<>(94);
+		List<ItemStack> contents = new ArrayList<>(1100);
 		contents.add(new ItemStack(ModItems.COPPERIZATION_WAND));
 		contents.add(new ItemStack(ModItems.RESTORATION_WAND));
 		contents.add(CopperStatueManager.createCreativeSample(EntityTypes.ZOMBIE));
@@ -54,7 +59,24 @@ public final class ModCreativeTabs {
 		addStage(contents, true, WeatheringCopperCollection.ByState::exposed);
 		addStage(contents, true, WeatheringCopperCollection.ByState::weathered);
 		addStage(contents, true, WeatheringCopperCollection.ByState::oxidized);
+		addGenericCopperizableBlocks(contents);
 		return List.copyOf(contents);
+	}
+
+	/**
+	 * Adds the real item forms of blocks handled by the positional copperization path. They are
+	 * intentionally placed after all mod-owned content and remain ordinary source blocks until a
+	 * Copperization Wand is used on them in the world.
+	 */
+	private static void addGenericCopperizableBlocks(List<ItemStack> contents) {
+		Set<Item> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+		contents.forEach(stack -> seen.add(stack.getItem()));
+		BuiltInRegistries.BLOCK.forEach(block -> {
+			Item item = block.asItem();
+			if (item != Items.AIR && seen.add(item) && CopperizableBlockClassifier.supports(block.defaultBlockState())) {
+				contents.add(new ItemStack(item));
+			}
+		});
 	}
 
 	private static void addStage(
