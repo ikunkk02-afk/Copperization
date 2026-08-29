@@ -19,6 +19,36 @@ flat in float copperWaxed;
 
 out vec4 fragColor;
 
+const vec3 LUMA_WEIGHTS = vec3(0.2126, 0.7152, 0.0722);
+const vec3 FRESH_COPPER = vec3(0.753, 0.424, 0.314);
+
+struct CopperVisualProfile {
+    vec3 stageColor;
+    float copperUndertone;
+    float textureRetention;
+    float saturation;
+    float valueScale;
+};
+
+CopperVisualProfile profileForStage(float oxidation) {
+    if (oxidation < 0.17) {
+        return CopperVisualProfile(FRESH_COPPER, 0.00, 0.62, 1.08, 1.04);
+    } else if (oxidation < 0.50) {
+        return CopperVisualProfile(vec3(0.631, 0.494, 0.408), 0.18, 0.60, 0.88, 1.08);
+    } else if (oxidation < 0.84) {
+        return CopperVisualProfile(vec3(0.424, 0.600, 0.431), 0.30, 0.56, 0.92, 1.03);
+    }
+    return CopperVisualProfile(vec3(0.322, 0.639, 0.522), 0.10, 0.54, 1.02, 1.06);
+}
+
+vec3 preserveTextureDetail(vec3 baseColor, vec3 tintColor, float luminance) {
+    float tintLuminance = max(dot(tintColor, LUMA_WEIGHTS), 0.001);
+    vec3 neutralTint = tintColor / tintLuminance;
+    vec3 multiplied = baseColor * mix(vec3(1.0), neutralTint, 0.72);
+    float multipliedLuminance = max(dot(multiplied, LUMA_WEIGHTS), 0.025);
+    return multiplied * mix(1.0, luminance / multipliedLuminance, 0.72);
+}
+
 float hash21(vec2 point) {
     point = fract(point * vec2(123.34, 456.21));
     point += dot(point, point + 45.32);
@@ -55,26 +85,19 @@ void main() {
         * smoothstep(0.0, 0.035, copperProgress);
     if (copperProgress >= 0.998) copperMask = 1.0;
 
-    vec3 freshCopper = vec3(0.84, 0.39, 0.20);
-    vec3 exposedCopper = vec3(0.71, 0.43, 0.31);
-    vec3 weatheredCopper = vec3(0.39, 0.58, 0.46);
-    vec3 oxidizedCopper = vec3(0.27, 0.66, 0.53);
-    vec3 copperBase;
-    if (copperOxidation < 0.17) {
-        copperBase = freshCopper;
-    } else if (copperOxidation < 0.50) {
-        copperBase = exposedCopper;
-    } else if (copperOxidation < 0.84) {
-        copperBase = weatheredCopper;
-    } else {
-        copperBase = oxidizedCopper;
-    }
-    copperBase = mix(copperBase, min(copperBase * 1.10 + vec3(0.035, 0.018, 0.0), vec3(1.0)), copperWaxed);
-
-    float luminance = dot(base.rgb, vec3(0.2126, 0.7152, 0.0722));
-    vec3 convertedCopper = copperBase * (0.34 + luminance * 1.04);
-    convertedCopper += vec3(0.085, 0.032, 0.008) * pow(luminance, 3.0);
+    CopperVisualProfile profile = profileForStage(copperOxidation);
+    float localCopper = profile.copperUndertone * (0.35 + 0.65 * (1.0 - noise));
+    vec3 copperBase = mix(profile.stageColor, FRESH_COPPER, localCopper);
+    float luminance = dot(base.rgb, LUMA_WEIGHTS);
+    vec3 multipliedDetail = preserveTextureDetail(base.rgb, copperBase, luminance);
+    vec3 tonalCopper = copperBase * (0.36 + luminance * 1.08);
+    tonalCopper += vec3(0.055, 0.022, 0.006) * pow(luminance, 3.0);
+    vec3 convertedCopper = mix(tonalCopper, multipliedDetail, profile.textureRetention);
+    float convertedLuminance = dot(convertedCopper, LUMA_WEIGHTS);
+    convertedCopper = mix(vec3(convertedLuminance), convertedCopper, profile.saturation) * profile.valueScale;
     convertedCopper = clamp(convertedCopper, 0.0, 1.0);
+
+    // Waxing freezes the server-side stage; it intentionally does not change this palette.
 
     vec4 color = vec4(mix(base.rgb, convertedCopper, copperMask), base.a);
     color.rgb = mix(overlayColor.rgb, color.rgb, overlayColor.a);
