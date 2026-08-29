@@ -1,9 +1,9 @@
 {
   "categories": {
     "BlockEntities": {
-      "supported": 0,
+      "supported": 1,
       "total": 186,
-      "unsupported": 186
+      "unsupported": 185
     },
     "Crops": {
       "supported": 9,
@@ -71,8 +71,8 @@
       "unsupported": 0
     }
   },
-  "coverage_percent": 83.28,
-  "supported": 996,
-  "unsupported": 200,
+  "coverage_percent": 83.36,
+  "supported": 997,
+  "unsupported": 199,
   "vanilla_blocks_total": 1196
 }

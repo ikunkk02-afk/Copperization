@@ -18,9 +18,6 @@ public final class CopperizableBlockRegistry {
 	}
 
 	public static void register(Block source, CopperizedBlockFamily family) {
-		if (source.defaultBlockState().hasBlockEntity()) {
-			throw new IllegalArgumentException("Copperizable source must not have a block entity: " + source);
-		}
 		CopperizationMapping mapping = CopperizationMapping.legacy(family);
 		CopperizationMapping previous = ORIGINAL_MAPPINGS.putIfAbsent(source, mapping);
 		if (previous != null) {
@@ -32,6 +29,10 @@ public final class CopperizableBlockRegistry {
 
 	public static Optional<CopperizedBlockFamily> get(Block source) {
 		return Optional.ofNullable(ORIGINAL_MAPPINGS.get(source)).flatMap(CopperizationMapping::legacyFamily);
+	}
+
+	public static boolean hasPhysicalMapping(Block source) {
+		return ORIGINAL_MAPPINGS.containsKey(source);
 	}
 
 	public static Optional<BlockState> copperize(BlockState source) {
@@ -61,6 +62,14 @@ public final class CopperizableBlockRegistry {
 
 	public static boolean supportsPositionCopperization(BlockState state) {
 		return CopperizableBlockClassifier.supports(state);
+	}
+
+	/** Returns the visual stage encoded by a real registered copperized block variant. */
+	public static Optional<CopperizedBlockData> physicalCopperData(BlockState state) {
+		CopperizationMapping mapping = COPPERIZED_BLOCK_MAPPINGS.get(state.getBlock());
+		if (mapping == null || mapping.legacyFamily().isEmpty()) return Optional.empty();
+		int index = mapping.legacyFamily().get().blocks().asList().indexOf(state.getBlock());
+		return index < 0 ? Optional.empty() : Optional.of(new CopperizedBlockData(index % 4, index >= 4, Long.MAX_VALUE));
 	}
 
 	public static Map<Block, CopperizedBlockFamily> mappings() {

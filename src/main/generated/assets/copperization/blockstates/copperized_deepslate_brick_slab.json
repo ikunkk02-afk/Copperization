@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "copperization:block/copperized_deepslate_brick_slab"
+    }
+  }
+}

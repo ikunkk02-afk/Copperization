@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "copperization:waxed_copperized_cherry_fence"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ]
+}

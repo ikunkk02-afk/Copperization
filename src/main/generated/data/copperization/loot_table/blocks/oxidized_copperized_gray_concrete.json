@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "copperization:oxidized_copperized_gray_concrete"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "copperization:exposed_copperized_cracked_polished_blackstone_bricks"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ]
+}

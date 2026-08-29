@@ -30,6 +30,17 @@ public final class CopperizableBlockClassifier {
 		if (state.isAir() || block instanceof AirBlock || block instanceof LiquidBlock || state.hasBlockEntity() || state.is(UNCOPPERIZABLE)) {
 			return false;
 		}
+		return supportsTechnicalPolicy(block);
+	}
+
+	/** Registry bootstrap runs before data-pack tags are bound. */
+	public static boolean supportsDuringRegistration(BlockState state) {
+		Block block = state.getBlock();
+		if (state.isAir() || block instanceof AirBlock || block instanceof LiquidBlock || state.hasBlockEntity()) return false;
+		return supportsTechnicalPolicy(block);
+	}
+
+	private static boolean supportsTechnicalPolicy(Block block) {
 		var id = BuiltInRegistries.BLOCK.getKey(block);
 		return id == null || !"minecraft".equals(id.getNamespace()) || !TECHNICAL_PATHS.contains(id.getPath());
 	}

@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "copperization:block/copperized_emerald_block"
+    }
+  }
+}

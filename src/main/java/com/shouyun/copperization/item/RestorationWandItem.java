@@ -3,6 +3,7 @@ package com.shouyun.copperization.item;
 import com.shouyun.copperization.CopperizationConstants;
 import com.shouyun.copperization.block.CopperizableBlockRegistry;
 import com.shouyun.copperization.block.CopperizedBlockStorage;
+import com.shouyun.copperization.block.CopperizedBlockReplacement;
 import com.shouyun.copperization.copper.CopperizationManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -43,7 +44,7 @@ public class RestorationWandItem extends Item {
 		var restored = CopperizableBlockRegistry.restore(current);
 		if (restored.isEmpty()) return InteractionResult.PASS;
 		if (!(context.getLevel() instanceof ServerLevel level)) return InteractionResult.SUCCESS;
-		if (!level.setBlock(pos, restored.get(), Block.UPDATE_ALL)) return InteractionResult.FAIL;
+		if (!CopperizedBlockReplacement.replace(level, pos, restored.get())) return InteractionResult.FAIL;
 
 		finish(context.getPlayer(), context.getItemInHand(), context.getHand());
 		playFeedback(level, pos);

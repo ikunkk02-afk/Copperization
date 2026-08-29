@@ -3,6 +3,7 @@ package com.shouyun.copperization.item;
 import com.shouyun.copperization.CopperizationConstants;
 import com.shouyun.copperization.block.CopperizableBlockRegistry;
 import com.shouyun.copperization.block.CopperizedBlockStorage;
+import com.shouyun.copperization.block.CopperizedBlockReplacement;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -41,7 +42,7 @@ public class CopperizationWandItem extends Item {
 			return InteractionResult.SUCCESS;
 		}
 
-		if (!level.setBlock(pos, target.get(), Block.UPDATE_ALL)) {
+		if (!CopperizedBlockReplacement.replace(level, pos, target.get())) {
 			return InteractionResult.FAIL;
 		}
 

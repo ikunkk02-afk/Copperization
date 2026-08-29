@@ -2,6 +2,7 @@ package com.shouyun.copperization.gametest;
 
 import com.shouyun.copperization.block.CopperizableBlockRegistry;
 import com.shouyun.copperization.block.CopperizedBlockStorage;
+import com.shouyun.copperization.block.CopperizedBlockReplacement;
 import com.shouyun.copperization.copper.CopperOxidationManager;
 import com.shouyun.copperization.copper.CopperStatueManager;
 import com.shouyun.copperization.copper.CopperizationManager;
@@ -32,6 +33,7 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.BlockHitResult;
@@ -41,14 +43,46 @@ import net.minecraft.world.phys.Vec3;
 public final class CopperizationGameTests implements CustomTestMethodInvoker {
 	@GameTest
 	public void blockMappingsAreCompleteAndSafe(GameTestHelper context) {
-		if (CopperizableBlockRegistry.mappings().size() != 11) throw new AssertionError("Expected 11 source mappings");
-		if (ModBlocks.families().stream().mapToInt(f -> f.blocks().asList().size()).sum() != 88) throw new AssertionError("Expected 88 variants");
-		if (CopperizableBlockRegistry.copperize(Blocks.CHEST.defaultBlockState()).isPresent()) throw new AssertionError("Chest must not be copperizable");
+		if (CopperizableBlockRegistry.mappings().size() != ModBlocks.families().size()) throw new AssertionError("Every physical family must have a source mapping");
+		if (ModBlocks.families().stream().mapToInt(f -> f.blocks().asList().size()).sum() != ModBlocks.families().size() * 8) {
+			throw new AssertionError("Every physical family must expose eight variants");
+		}
+		if (CopperizableBlockRegistry.copperize(Blocks.CHEST.defaultBlockState()).isEmpty()) throw new AssertionError("Chest must map to vanilla Copper Chest variants");
 		if (CopperizableBlockRegistry.copperize(Blocks.FURNACE.defaultBlockState()).isPresent()) throw new AssertionError("Furnace must not be copperizable");
 		if (CopperizableBlockRegistry.copperize(Blocks.STONE.defaultBlockState()).isEmpty()) throw new AssertionError("Stone must be copperizable");
+		if (CopperizableBlockRegistry.copperize(Blocks.GRASS_BLOCK.defaultBlockState()).isEmpty()) throw new AssertionError("Grass Block must have a physical copperized family");
 		if (CopperizableBlockRegistry.copperize(Blocks.OAK_STAIRS.defaultBlockState()).isEmpty()
 			|| CopperizableBlockRegistry.copperize(Blocks.POPPY.defaultBlockState()).isEmpty()) {
 			throw new AssertionError("Model-backed building blocks and plants must use the generic mapping");
+		}
+		context.succeed();
+	}
+
+	@GameTest
+	public void chestCopperizationAndRestorationPreserveInventory(GameTestHelper context) {
+		BlockPos pos = context.absolutePos(new BlockPos(1, 1, 1));
+		context.getLevel().setBlockAndUpdate(pos, Blocks.CHEST.defaultBlockState());
+		if (!(context.getLevel().getBlockEntity(pos) instanceof net.minecraft.world.Container original)) {
+			throw new AssertionError("Chest block entity was not created");
+		}
+		original.setItem(0, new ItemStack(Items.DIAMOND, 17));
+		BlockState copper = CopperizableBlockRegistry.copperize(context.getLevel().getBlockState(pos)).orElseThrow();
+		if (!CopperizedBlockReplacement.replace(context.getLevel(), pos, copper)
+			|| !Blocks.COPPER_CHEST.asList().contains(context.getLevel().getBlockState(pos).getBlock())) {
+			throw new AssertionError("Chest did not become a vanilla Copper Chest");
+		}
+		if (!(context.getLevel().getBlockEntity(pos) instanceof net.minecraft.world.Container copperInventory)
+			|| !copperInventory.getItem(0).is(Items.DIAMOND) || copperInventory.getItem(0).getCount() != 17) {
+			throw new AssertionError("Copper Chest did not preserve inventory");
+		}
+		BlockState restored = CopperizableBlockRegistry.restore(context.getLevel().getBlockState(pos)).orElseThrow();
+		if (!CopperizedBlockReplacement.replace(context.getLevel(), pos, restored)
+			|| !context.getLevel().getBlockState(pos).is(Blocks.CHEST)) {
+			throw new AssertionError("Copper Chest did not restore to Chest");
+		}
+		if (!(context.getLevel().getBlockEntity(pos) instanceof net.minecraft.world.Container restoredInventory)
+			|| !restoredInventory.getItem(0).is(Items.DIAMOND) || restoredInventory.getItem(0).getCount() != 17) {
+			throw new AssertionError("Restored Chest did not preserve inventory");
 		}
 		context.succeed();
 	}
@@ -379,15 +413,9 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 			throw new AssertionError("Copperization creative tab or icon was not registered");
 		}
 		List<ItemStack> contents = ModCreativeTabs.creativeContents();
-		if (contents.size() <= 94 || !contents.getFirst().is(ModItems.COPPERIZATION_WAND)
+		if (contents.size() != 6 + ModBlocks.families().size() * 8 || !contents.getFirst().is(ModItems.COPPERIZATION_WAND)
 			|| !contents.get(1).is(ModItems.RESTORATION_WAND)) {
 			throw new AssertionError("Unexpected creative tab size or first item: " + contents.size());
-		}
-		for (var expected : List.of(Items.OAK_STAIRS, Items.OAK_SLAB, Items.OAK_FENCE, Items.OAK_DOOR,
-			Items.OAK_LEAVES, Items.OAK_SAPLING, Items.POPPY, Items.SUGAR_CANE, Items.CACTUS, Items.BAMBOO, Items.KELP)) {
-			if (contents.stream().noneMatch(stack -> stack.is(expected))) {
-				throw new AssertionError("Missing generic copperizable creative item: " + expected);
-			}
 		}
 
 		var sampleTypes = List.of(EntityTypes.ZOMBIE, EntityTypes.SKELETON, EntityTypes.CREEPER, EntityTypes.VILLAGER);
@@ -502,10 +530,10 @@ public final class CopperizationGameTests implements CustomTestMethodInvoker {
 				+ ", cooldown=" + player.getCooldowns().isOnCooldown(wand) + ")");
 		}
 
-		BlockPos chest = new BlockPos(2, 1, 1);
-		context.setBlock(chest, Blocks.CHEST);
-		ModItems.COPPERIZATION_WAND.useOn(useContext(context, player, chest));
-		if (!context.getBlockState(chest).is(Blocks.CHEST)) throw new AssertionError("Wand modified an unsupported block");
+		BlockPos technical = new BlockPos(2, 1, 1);
+		context.setBlock(technical, Blocks.BARRIER);
+		ModItems.COPPERIZATION_WAND.useOn(useContext(context, player, technical));
+		if (!context.getBlockState(technical).is(Blocks.BARRIER)) throw new AssertionError("Wand modified an unsupported technical block");
 		context.succeed();
 	}
 

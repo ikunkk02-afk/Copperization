@@ -131,11 +131,14 @@ public final class CopperizationDataProvider implements DataProvider {
 		for (int i = 0; i < blocks.size(); i++) {
 			Block block = blocks.get(i);
 			Identifier id = BuiltInRegistries.BLOCK.getKey(block);
+			if (!Copperization.MOD_ID.equals(id.getNamespace())) continue;
 			String name = id.getPath();
 			String textureName = name.startsWith("waxed_") ? name.substring("waxed_".length()) : name;
 			writes.add(save(cache, blockState(name), asset("blockstates/" + name + ".json")));
-			writes.add(save(cache, blockModel(textureName), asset("models/block/" + name + ".json")));
-			writes.add(save(cache, itemDefinition("copperization:block/" + name), asset("items/" + name + ".json")));
+			writes.add(save(cache, ModBlocks.usesLegacyTexture(family)
+				? blockModel(textureName) : sourceBlockModel(family.source()), asset("models/block/" + name + ".json")));
+			writes.add(save(cache, itemDefinition(ModBlocks.usesLegacyTexture(family)
+				? "copperization:block/" + name : sourceItemModel(family.source())), asset("items/" + name + ".json")));
 			writes.add(save(cache, selfDrop(id.toString()), data("loot_table/blocks/" + name + ".json")));
 			int stage = i % 4;
 			boolean waxed = i >= 4;
@@ -192,7 +195,7 @@ public final class CopperizationDataProvider implements DataProvider {
 			Identifier id = BuiltInRegistries.BLOCK.getKey(block);
 			if (id == null || !"minecraft".equals(id.getNamespace())) continue;
 			var state = block.defaultBlockState();
-			boolean accepted = CopperizableBlockClassifier.supports(state);
+			boolean accepted = com.shouyun.copperization.block.CopperizableBlockRegistry.mappingForOriginal(state).isPresent();
 			CopperizableBlockClassifier.BlockCategory category = CopperizableBlockClassifier.category(state);
 			int[] values = categories.get(category);
 			values[0]++;
@@ -241,6 +244,26 @@ public final class CopperizationDataProvider implements DataProvider {
 		JsonObject model = new JsonObject(); model.addProperty("parent", "minecraft:block/cube_all"); JsonObject textures = new JsonObject(); textures.addProperty("all", "copperization:block/" + texture); model.add("textures", textures); return model;
 	}
 
+	private static JsonObject sourceBlockModel(Block source) {
+		Identifier id = BuiltInRegistries.BLOCK.getKey(source);
+		JsonObject model = new JsonObject();
+		String type = source.getClass().getSimpleName();
+		String parent = type.contains("Door") && !type.contains("TrapDoor")
+			? id.getNamespace() + ":block/" + id.getPath() + "_bottom_left" : sourceItemModel(source);
+		model.addProperty("parent", parent);
+		return model;
+	}
+
+	private static String sourceItemModel(Block source) {
+		Identifier id = BuiltInRegistries.BLOCK.getKey(source);
+		String base = id.getNamespace() + ":block/" + id.getPath();
+		String type = source.getClass().getSimpleName();
+		if (type.contains("Wall") || type.endsWith("FenceBlock")) return base + "_inventory";
+		if (type.contains("TrapDoor")) return base + "_bottom";
+		if (type.contains("Door")) return id.getNamespace() + ":item/" + id.getPath();
+		return base;
+	}
+
 	private static JsonObject selfDrop(String id) {
 		JsonObject root = new JsonObject(); root.addProperty("type", "minecraft:block"); JsonArray pools = new JsonArray(); JsonObject pool = new JsonObject(); pool.addProperty("rolls", 1.0); JsonArray entries = new JsonArray(); JsonObject entry = new JsonObject(); entry.addProperty("type", "minecraft:item"); entry.addProperty("name", id); entries.add(entry); pool.add("entries", entries); JsonArray conditions = new JsonArray(); JsonObject condition = new JsonObject(); condition.addProperty("condition", "minecraft:survives_explosion"); conditions.add(condition); pool.add("conditions", conditions); pools.add(pool); root.add("pools", pools); return root;
 	}
@@ -258,7 +281,8 @@ public final class CopperizationDataProvider implements DataProvider {
 			case "stone" -> "石头"; case "cobblestone" -> "圆石"; case "stone_bricks" -> "石砖"; case "deepslate" -> "深板岩";
 			case "cobbled_deepslate" -> "深板岩圆石"; case "deepslate_bricks" -> "深板岩砖"; case "bricks" -> "红砖";
 			case "blackstone" -> "黑石"; case "polished_blackstone" -> "磨制黑石"; case "end_stone" -> "末地石"; case "nether_bricks" -> "下界砖";
-			default -> value;
+			case "grass_block" -> "草方块";
+			default -> displayName(value);
 		};
 	}
 
